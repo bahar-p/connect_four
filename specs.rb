@@ -6,7 +6,8 @@ module ConnectFour
     RED = 'R'
     WHITE = 'W'
     GAME_OVER = 'Game Over!'
-    MAX_MOVES = 42
+    CONTINUE = 'continue'
+    MAX_MOVES = 43
 
   end
 end
