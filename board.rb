@@ -1,44 +1,49 @@
+require_relative 'cell'
+
 # frozen_string_literal: true
 # this class represents the game board
 class Board
+
+  attr_reader :size
 
   # @param row [Integer] number of board rows
   # @param col [Integer] number of board columns
   def initialize(row, col)
     @rows = row
     @cols = col
-  end
-
-  # @return [Integer] game board size
-  def size
-    @size ||= @rows * @cols
+    @size = @rows * @cols
+    init_board
   end
 
   def cells
-    @cell ||= init_cells
+    @cells ||= init_board
   end
 
-  def init_cells
-    array = []
-    (0...@rows).each do
-      array << Array.new(@cols, '0')
-    end
-    array
+  # initialize game board
+  def init_board
+    Array.new(@rows) { Array.new(@cols) { Cell.new } }
   end
 
-  # check the cell with specified mark
-  def mark_cell(move, mark)
-    r = played_row(move)
-    c = played_col(move)
-    if cells[r][c] == '0'
-      cells[r][c] = mark
-      result = win?(r, c, mark) ? ConnectFour::Specs::GAME_OVER : ConnectFour::Specs::CONTINUE
-      puts "result: #{result}"
-      return result
+
+  # mark board's cell with players colour
+  # @param num [Integer] cell number played by player
+  # @param [Object] colour
+  # @return [String] result of the play
+  def mark_cell(num, colour)
+    r = played_row(num)
+    c = played_col(num)
+    cell = cells[r][c]
+
+    if cell.marked?
+      ConnectFour::Settings::FAILED_ATTEMPT
     else
-      ConnectFour::Specs::FAILED_ATTEMPT
+      cell.mark(colour)
+      connected_four?(r, c, colour) ? ConnectFour::Settings::GAME_OVER : ConnectFour::Settings::CONTINUE
     end
+
   end
+
+
 
 
   # checks if player has won
@@ -46,7 +51,7 @@ class Board
   # @param col [Integer] played column number
   # @param mark [String] players mark on board
   # @return [Boolean] true|false depending on whether player made the last move has won
-  def win?(row, col, mark)
+  def connected_four?(row, col, mark)
     scan_row(row, mark) || scan_column(col, mark) || \
       scan_negative_diameter(row, col, mark) || \
       scan_positive_diameter(row, col, mark)
@@ -61,7 +66,7 @@ class Board
     mark_count = 0
     connect_four = false
     (0...@cols).each do |c|
-      if cells[row][c] == mark
+      if cells[row][c].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -84,7 +89,7 @@ class Board
     mark_count = 0
     connect_four = false
     (0...@rows).each do |r|
-      if cells[r][col] == mark
+      if cells[r][col].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -186,7 +191,7 @@ class Board
     i = start_row
     j = start_col
     while i <= end_row && j <= end_col
-      if cells[i][j] == mark
+      if cells[i][j].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
