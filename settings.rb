@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module ConnectFour
-  module Specs
+  module Settings
 
     FAILED_ATTEMPT = 'failed'
     RED = 'R'
@@ -8,6 +8,7 @@ module ConnectFour
     GAME_OVER = 'Game Over!'
     CONTINUE = 'continue'
     MAX_MOVES = 43
+    DEFAULT_MARK = '0'
 
   end
 end
