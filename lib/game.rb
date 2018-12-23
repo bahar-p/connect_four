@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require_relative 'board'
 require_relative 'player'
-require_relative 'settings'
+require_relative '../settings'
 
 class Game
 
@@ -10,35 +10,35 @@ class Game
   def initialize(row, column)
     @row = row
     @column = column
-    @over = false
   end
 
-  # implement connect_four game start
+  # start the game
   def start
-
+    over = false
     board = Board.new(@row, @column)
-    #puts "board size: #{board.size} -- cells: #{board.cells}"
-    p1 = Player.new(board, ConnectFour::Settings::RED)
-    p2 = Player.new(board, ConnectFour::Settings::WHITE)
-    counter = 0
-    while counter < ConnectFour::Settings::MAX_MOVES && !over?
+    p1 = Player.new(board, ConnectFour::RED)
+    p2 = Player.new(board, ConnectFour::WHITE)
 
-      p1_play = p1.play
-      if !p1_play
+    counter = 0
+    while counter < ConnectFour::MAX_MOVES
+
+      p1_result = p1.play
+      if p1_result.nil?
         break
-      elsif p1_play.match?(/#{ConnectFour::Settings::GAME_OVER}/)
-        @over = true
+      elsif p1_result == ConnectFour::RESULT[:GAME_OVER]
+        over = true
         winner = p1.mark
         break
       else
         puts "player_1 played - counter: #{counter}"
       end
 
-      p2_play = p2.play
-      if !p2_play
+      p2_result = p2.play
+
+      if p2_result.nil?
         break
-      elsif p2_play.match?(/#{ConnectFour::Settings::GAME_OVER}/)
-        @over = true
+      elsif p2_result == ConnectFour::RESULT[:GAME_OVER]
+        over = true
         winner = p2.mark
         break
       else
@@ -48,18 +48,14 @@ class Game
       counter += 1
     end
 
-    if over?
+    if over
       (0...6).each do |i|
         p board.cells[i].map(&:colour)
       end
       puts "GAME OVER! -- Winner is #{winner}"
     else
-      puts 'No winner!'
+      puts 'Game has no winner!'
     end
   end
 
-  # checks whether the game is over
-  def over?
-    @over
-  end
 end

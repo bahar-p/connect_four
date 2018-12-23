@@ -1,4 +1,4 @@
-require_relative 'game'
+require_relative 'lib/game'
 
 namespace :connect_four do
 

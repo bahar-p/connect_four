@@ -35,16 +35,18 @@ class Board
     cell = cells[r][c]
 
     if cell.marked?
-      ConnectFour::Settings::FAILED_ATTEMPT
+      raise GameError, ConnectFour::RESULT[:FAILED]
     else
       cell.mark(colour)
-      connected_four?(r, c, colour) ? ConnectFour::Settings::GAME_OVER : ConnectFour::Settings::CONTINUE
+      if connected_four?(r, c, colour)
+        ConnectFour::RESULT[:GAME_OVER]
+      else
+        ConnectFour::RESULT[:CONTINUE]
+      end
+
     end
 
   end
-
-
-
 
   # checks if player has won
   # @param row [Integer] played row number
@@ -56,6 +58,9 @@ class Board
       scan_negative_diameter(row, col, mark) || \
       scan_positive_diameter(row, col, mark)
   end
+
+
+  @private
 
   # scan column of the board
   # @param row [Integer] played row
@@ -208,8 +213,6 @@ class Board
     connect_four
   end
 
-
-  @private
   # @return [Integer] row number for the player's move
   def played_row(value)
     value / @cols
@@ -221,4 +224,12 @@ class Board
   end
 
 
+end
+
+# connect four custom error on failed play attempt
+class GameError < StandardError
+
+  def initialize(msg = 'Game Error')
+    super
+  end
 end

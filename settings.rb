@@ -1,14 +1,11 @@
 # frozen_string_literal: true
+# Game settings
 module ConnectFour
-  module Settings
 
-    FAILED_ATTEMPT = 'failed'
-    RED = 'R'
-    WHITE = 'W'
-    GAME_OVER = 'Game Over!'
-    CONTINUE = 'continue'
-    MAX_MOVES = 43
-    DEFAULT_MARK = '0'
+  RED = 'R'
+  WHITE = 'W'
+  RESULT = { FAILED: 0, GAME_OVER: 1, CONTINUE: 2 }.freeze
+  MAX_MOVES = 43
+  DEFAULT_MARK = '0'
 
-  end
 end
