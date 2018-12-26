@@ -4,7 +4,7 @@ class Cell
   attr_accessor :colour
 
   def initialize
-    @colour = ConnectFour::DEFAULT_MARK
+    @colour = ConnectFourSettings::DEFAULT_MARK
   end
 
   # set the colour of the cell
@@ -16,7 +16,7 @@ class Cell
   # checks whether the cell is already marked
   # @param cell [Cell] the cell object in the board
   def marked?
-    @colour != ConnectFour::DEFAULT_MARK
+    @colour != ConnectFourSettings::DEFAULT_MARK
   end
 
 end

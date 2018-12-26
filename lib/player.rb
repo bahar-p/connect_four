@@ -1,66 +1,42 @@
 # frozen_string_literal: true
-require_relative 'board'
+require_relative 'game'
 require_relative '../settings'
 
 # this class represent connect_four game player
 class Player
 
-  attr_reader :mark
+  attr_reader :colour
+  attr_reader :number
 
-  # @param board [Board] game board
-  # @param mark [Integer] player's color on the board. Either R|W
-  def initialize(board, mark)
-    raise 'player must have the game board' if board.nil?
-    raise 'board be an instance of Board' unless board.respond_to?(:cells)
-
-    @board = board
-    @mark = mark
-
+  # @param game [Game] game game
+  # @param colour [Integer] player's color on the game. Either R|W
+  def initialize(game, colour, number: '1')
+    raise 'player must have the game game' if game.nil?
+    raise 'game must have a board' unless game.respond_to?(:board)
+    @game = game
+    @colour = colour
+    @number = number
   end
 
   # play action or nil if no move made
   def play
-
-    move_result = ConnectFour::RESULT[:FAILED]
+    move_result = ConnectFourSettings::RESULT[:FAILED]
     attempts = 0
     begin
-      move_result = @board.mark_cell(move, @mark)
+      move_result = @game.play(move, @colour)
     rescue GameError
       attempts += 1
-      retry if attempts <= ConnectFour::MAX_MOVES
+      retry if attempts <= ConnectFourSettings::MAX_MOVES
     ensure
       move_result
     end
-    # begin
-    #   @attempts ||= 0
-    #   move_result = @board.mark_cell(move, @mark)
-    #   if move_result == ConnectFour::RESULT[:FAILED] && @attempts < ConnectFour::MAX_MOVES
-    #     @attempts += 1
-    #     retry
-    #   elsif @attempts >= ConnectFour::Settings::MAX_MOVES && move_result == ConnectFour::RESULT[:FAILED]
-    #     puts "player couldn't make any move"
-    #     false
-    #   else
-    #     move_result
-    #   end
-    # end
 
-    # while move_result =~ /#{ConnectFour::Settings::FAILED_ATTEMPT}/ && attempts < ConnectFour::Settings::MAX_MOVES
-    #   move_result = @board.mark_cell(move, @mark)
-    #   attempts += 1
-    # end
-    # if attempts >= ConnectFour::MAX_MOVES && move_result ==ConnectFour::RESULT[:FAILED]
-    #   puts "player couldn't make any move"
-    #   return false
-    # else
-    #   move_result
-    # end
   end
 
   @private
-  # cell number of the player's move
-  # @return [Integer] a random number in range of size of the game board
+  # played number on the game
+  # @return [Integer] a random number in range of size of the game game
   def move
-    rand(@board.size)
+    rand(@game.size)
   end
 end

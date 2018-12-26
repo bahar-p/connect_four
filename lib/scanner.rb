@@ -1,66 +1,13 @@
-require_relative 'cell'
+class Scanner
 
-# frozen_string_literal: true
-# this class represents the game board
-class Board
+  # @param board [Array<Array>] 2D board representing the game board
+  def initialize(board)
+    raise 'board should have colour' unless board.all? { |a| a.map(&:colour) }
 
-  attr_reader :size
-
-  # @param row [Integer] number of board rows
-  # @param col [Integer] number of board columns
-  def initialize(row, col)
-    @rows = row
-    @cols = col
-    @size = @rows * @cols
-    init_board
+    @board = board
+    @rows = board.count
+    @cols = board[0].count
   end
-
-  def cells
-    @cells ||= init_board
-  end
-
-  # initialize game board
-  def init_board
-    Array.new(@rows) { Array.new(@cols) { Cell.new } }
-  end
-
-
-  # mark board's cell with players colour
-  # @param num [Integer] cell number played by player
-  # @param [Object] colour
-  # @return [String] result of the play
-  def mark_cell(num, colour)
-    r = played_row(num)
-    c = played_col(num)
-    cell = cells[r][c]
-
-    if cell.marked?
-      raise GameError, ConnectFour::RESULT[:FAILED]
-    else
-      cell.mark(colour)
-      if connected_four?(r, c, colour)
-        ConnectFour::RESULT[:GAME_OVER]
-      else
-        ConnectFour::RESULT[:CONTINUE]
-      end
-
-    end
-
-  end
-
-  # checks if player has won
-  # @param row [Integer] played row number
-  # @param col [Integer] played column number
-  # @param mark [String] players mark on board
-  # @return [Boolean] true|false depending on whether player made the last move has won
-  def connected_four?(row, col, mark)
-    scan_row(row, mark) || scan_column(col, mark) || \
-      scan_negative_diameter(row, col, mark) || \
-      scan_positive_diameter(row, col, mark)
-  end
-
-
-  @private
 
   # scan column of the board
   # @param row [Integer] played row
@@ -71,7 +18,7 @@ class Board
     mark_count = 0
     connect_four = false
     (0...@cols).each do |c|
-      if cells[row][c].colour == mark
+      if @board[row][c].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -93,8 +40,9 @@ class Board
   def scan_column(col, mark)
     mark_count = 0
     connect_four = false
+
     (0...@rows).each do |r|
-      if cells[r][col].colour == mark
+      if @board[r][col].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -145,7 +93,7 @@ class Board
     i = start_row
     j = start_col
     while i >= end_row && j <= end_col
-      if cells[i][j] == mark
+      if @board[i][j] == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -196,7 +144,7 @@ class Board
     i = start_row
     j = start_col
     while i <= end_row && j <= end_col
-      if cells[i][j].colour == mark
+      if @board[i][j].colour == mark
         mark_count += 1
         if mark_count == 4
           connect_four = true
@@ -213,23 +161,4 @@ class Board
     connect_four
   end
 
-  # @return [Integer] row number for the player's move
-  def played_row(value)
-    value / @cols
-  end
-
-  # @return [Integer] column number for the player's move
-  def played_col(value)
-    value % @cols
-  end
-
-
-end
-
-# connect four custom error on failed play attempt
-class GameError < StandardError
-
-  def initialize(msg = 'Game Error')
-    super
-  end
 end

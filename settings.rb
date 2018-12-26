@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 # Game settings
-module ConnectFour
+module ConnectFourSettings
 
   RED = 'R'
   WHITE = 'W'
