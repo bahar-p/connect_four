@@ -1,13 +1,29 @@
+require_relative 'board'
+require 'logger'
+
 class Scanner
 
-  # @param board [Array<Array>] 2D board representing the game board
-  def initialize(board)
+  # @param board [Board] 2D board representing the game board
+  def initialize(board, logger: nil)
     raise 'board should have colour' unless board.all? { |a| a.map(&:colour) }
 
     @board = board
     @rows = board.count
-    @cols = board[0].count
+    @columns = board[0].count
+    @logger = logger || Logger.new(STDOUT)
   end
+
+
+  # scan the diameter, row and column the cell belong to in the board for connected_vfour
+  def found_connected_four?(cell, colour)
+    row = cell.row_number
+    column = cell.column_number
+    scan_row(row, colour) || scan_column(column, colour) || \
+      scan_negative_diameter(row, column, colour) || \
+      scan_positive_diameter(row, column, colour)
+  end
+
+  private
 
   # scan column of the board
   # @param row [Integer] played row
@@ -17,7 +33,7 @@ class Scanner
   def scan_row(row, mark)
     mark_count = 0
     connect_four = false
-    (0...@cols).each do |c|
+    (0...@columns).each do |c|
       if @board[row][c].colour == mark
         mark_count += 1
         if mark_count == 4
@@ -29,7 +45,7 @@ class Scanner
         mark_count = 0
       end
     end
-    puts "Row scan result #{connect_four}"
+    @logger.debug "Row scan result #{connect_four}"
     connect_four
   end
 
@@ -54,10 +70,12 @@ class Scanner
       end
 
     end
-    puts "Column scan result #{connect_four}"
+    @logger.debug "Column scan result #{connect_four}"
     connect_four
   end
 
+  # TODO: seems not working on this condition. Review the math
+  # TODO: rename variables r and c
   # scan positive diameter of the board
   # @param r [Integer] played row
   # @param c [Integer] played column
@@ -83,8 +101,8 @@ class Scanner
     # col = 0 + r + c
     col = r + c
     end_row = 0
-    if col > @cols - 1
-      end_col = @cols - 1
+    if col > @columns - 1
+      end_col = @columns - 1
       end_row = (end_col - c - r).abs
     else
       end_col = col
@@ -105,7 +123,7 @@ class Scanner
       i -= 1
       j += 1
     end
-    puts "Pos Dia scan result #{connect_four}"
+    @logger.debug "Pos Dia scan result #{connect_four}"
 
     connect_four
   end
@@ -134,8 +152,8 @@ class Scanner
     # end of scan
     end_row = @rows - 1
     col = end_row - r + c
-    if col > @cols - 1
-      end_col = @cols - 1
+    if col > @columns - 1
+      end_col = @columns - 1
       end_row = (-start_col + c - r).abs
     else
       end_col = col
@@ -157,7 +175,7 @@ class Scanner
       j += 1
     end
 
-    puts "Neg Dia scan result #{connect_four}"
+    @logger.debug "Neg Dia scan result #{connect_four}"
     connect_four
   end
 

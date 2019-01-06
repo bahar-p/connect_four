@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require_relative 'game'
 require_relative '../settings'
+require 'logger'
 
 # this class represent connect_four game player
 class Player
@@ -8,35 +9,47 @@ class Player
   attr_reader :colour
   attr_reader :number
 
-  # @param game [Game] game game
+  # @param game [Board] game board
   # @param colour [Integer] player's color on the game. Either R|W
-  def initialize(game, colour, number: '1')
-    raise 'player must have the game game' if game.nil?
-    raise 'game must have a board' unless game.respond_to?(:board)
-    @game = game
+  def initialize(board, colour, number: '1', logger: nil)
+    raise 'player must have the game board' if board.nil?
+
+    @board = board
     @colour = colour
     @number = number
+    @logger = logger || Logger.new(STDOUT)
   end
 
-  # play action or nil if no move made
-  def play
-    move_result = ConnectFourSettings::RESULT[:FAILED]
+
+  # play action
+  def auto_play
+    move_result = ConnectFour::Settings::RESULT[:FAILED]
     attempts = 0
     begin
-      move_result = @game.play(move, @colour)
+      move_result = @board.colour(column_to_play, @colour)
     rescue GameError
       attempts += 1
-      retry if attempts <= ConnectFourSettings::MAX_MOVES
+      retry if attempts <= ConnectFour::Settings::MAX_MOVES
     ensure
       move_result
     end
-
   end
 
-  @private
-  # played number on the game
+  def manual_play(column)
+    move_result = ConnectFour::Settings::RESULT[:FAILED]
+    begin
+      move_result = @board.colour(column, @colour)
+    rescue GameError
+      @logger.warn 'cell is already coloured'
+    ensure
+      move_result
+    end
+  end
+
+  private
+  # column to play in
   # @return [Integer] a random number in range of size of the game game
-  def move
-    rand(@game.size)
+  def column_to_play
+    rand(@board.columns) % @board.columns
   end
 end
