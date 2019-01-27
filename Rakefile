@@ -9,7 +9,7 @@ namespace :connect_four do
 
     logger = Logger.new(STDOUT)
     logger.level = args[:log_level]
-    game = Game.new(rows: args[:row].to_i, columns: args[:col].to_i, logger: logger)
+    game = ConnectFour::Game.new(rows: args[:row].to_i, columns: args[:col].to_i, logger: logger)
     game.start(auto: to_bool(args[:auto]))
   end
 end
