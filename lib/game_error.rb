@@ -1,7 +1,9 @@
-# connect four custom error on failed play attempt
-class GameError < StandardError
+module ConnectFour
+  # connect four custom error on failed play attempt
+  class GameError < StandardError
 
-  def initialize(msg = 'Game Error')
-    super
+    def initialize(msg = 'Game Error')
+      super
+    end
   end
 end

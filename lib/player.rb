@@ -3,53 +3,55 @@ require_relative 'game'
 require_relative '../settings'
 require 'logger'
 
-# this class represent connect_four game player
-class Player
+module ConnectFour
+  # this class implements the player in connect_four game
+  class Player
 
-  attr_reader :colour
-  attr_reader :number
+    attr_reader :colour
+    attr_reader :id
 
-  # @param game [Board] game board
-  # @param colour [Integer] player's color on the game. Either R|W
-  def initialize(board, colour, number: '1', logger: nil)
-    raise 'player must have the game board' if board.nil?
+    # @param board [Board] game board
+    # @param colour [Integer] player's color on the game. Either R|W
+    # @param id [String] players identifier
+    # @param logger [Logger] game logger
+    def initialize(board:, colour:, id: '1', logger: nil)
+      raise 'player must have the game board' if board.nil?
 
-    @board = board
-    @colour = colour
-    @number = number
-    @logger = logger || Logger.new(STDOUT)
-  end
-
-
-  # play action
-  def auto_play
-    move_result = ConnectFour::Settings::RESULT[:FAILED]
-    attempts = 0
-    begin
-      move_result = @board.colour(column_to_play, @colour)
-    rescue GameError
-      attempts += 1
-      retry if attempts <= ConnectFour::Settings::MAX_MOVES
-    ensure
-      move_result
+      @board = board
+      @colour = colour
+      @id = id
+      @logger = logger || Logger.new(STDOUT)
     end
-  end
 
-  def manual_play(column)
-    move_result = ConnectFour::Settings::RESULT[:FAILED]
-    begin
-      move_result = @board.colour(column, @colour)
-    rescue GameError
-      @logger.warn 'cell is already coloured'
-    ensure
-      move_result
+
+    # auto play action
+    def auto_play
+      attempts = 0
+      begin
+        played_cell = @board.colour(column_to_play, @colour)
+      rescue GameError
+        attempts += 1
+        retry if attempts <= ConnectFour::Settings::MAX_MOVES
+      ensure
+        played_cell
+      end
     end
-  end
 
-  private
-  # column to play in
-  # @return [Integer] a random number in range of size of the game game
-  def column_to_play
-    rand(@board.columns) % @board.columns
+    # manual play action
+    # @param column [Integer] column to play
+    def manual_play(column)
+      @board.colour(column, @colour)
+    # rescue GameError
+    #   @logger.warn 'cell is already coloured'
+    # ensure
+    #   played_cell
+    end
+
+    private
+    # column to play in
+    # @return [Integer] a random number in range of size of the game game
+    def column_to_play
+      rand(@board.columns) % @board.columns
+    end
   end
 end
