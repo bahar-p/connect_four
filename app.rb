@@ -1,4 +1,5 @@
 require 'json'
+require_relative 'lib/game'
 
 # implements connect four application
 class App
@@ -11,7 +12,9 @@ class App
   ROUTES = {
     '/' => :root,
     '/env' => :inspect_env,
-    '/params' => :params
+    '/params' => :params,
+    '/connectfour' => :connect_four,
+    '/connectfour/play' => :connect_four_play
   }.freeze
 
   attr_reader :response, :request, :env
@@ -53,6 +56,22 @@ class App
     response.status = STATUS['OK']
     response.set_header('Content-Type', 'application/json')
     response.write(request.params.to_json)
+  end
+
+  def connect_four
+    response.status = STATUS['OK']
+    response.set_header('Content-Type', 'text/html')
+    response.write('<p style="color:olive;text-align:center;">welcome to connect four game</p>')
+  end
+
+  def connect_four_play
+    response.status = STATUS['OK']
+    response.set_header('Content-Type', 'text/plain')
+    auto_mode = request.params['auto'] || false
+    game = ConnectFour::Game.new(logger: Logger.new(STDOUT, level: Logger::INFO))
+    game.play(auto: auto_mode)
+    data = game.read_game_result
+    response.write(data)
   end
 
 end
