@@ -11,20 +11,23 @@ module ConnectFour
   # class that implements connected four game stat
   class Game
 
-    attr_reader :rows
-    attr_reader :columns
+    attr_reader :rows, :columns, :last_played_cell
+    attr_accessor :last_player, :move_counter, :game_over, :winner
 
     # @param rows [Integer] number of board rows
     # @param columns [Integer] number of board columns
-    def initialize(rows:, columns:, logger: nil)
+    def initialize(rows: 6, columns: 7, logger: nil)
       @rows = rows
       @columns = columns
       @logger = logger || Logger.new(STDOUT)
       @game_board = Board.new(rows: rows, columns: columns, logger: @logger)
+      @game_result_file = 'game_result'
+      @game_over = false
+      @move_counter = 0
     end
 
     # start the game
-    def start(auto: true)
+    def play(auto: true)
       player1 = Player.new(board: @game_board, colour: ConnectFour::Settings::RED, id: '1', logger: @logger)
       player2 = Player.new(board: @game_board, colour: ConnectFour::Settings::WHITE, id: '2', logger: @logger)
 
@@ -33,9 +36,14 @@ module ConnectFour
       else
         start_manual_mode(player1, player2)
       end
+      @logger.info 'Game had no winner!' unless game_over
+    end
 
-      @logger.info 'Game had no winner!'
-
+    def read_game_result
+      File.open(@game_result_file) do |file|
+        file.seek(0)
+        file.read
+      end
     end
 
     private
@@ -57,74 +65,75 @@ module ConnectFour
     end
 
     def start_auto_mode(player1, player2)
-
-      counter = 0
-      loop do
-
-        counter += 1
-        break if counter >= ConnectFour::Settings::MAX_MOVES
-
-        auto_play(player1)
-        auto_play(player2)
+      until game_over
+        @move_counter += 1
+        auto_play(player1) unless game_over
+        auto_play(player2) unless game_over
       end
-
+      announce_winner
     end
 
     def start_manual_mode(player1, player2)
-
-      counter = 0
-      loop do
-        counter += 1
-        break if counter >= ConnectFour::Settings::MAX_MOVES
-
-        manual_play(player1)
-        manual_play(player2)
+      until game_over
+        @move_counter += 1
+        manual_play(player1) unless game_over
+        manual_play(player2) unless game_over
       end
-
-
+      announce_winner
     end
 
     def auto_play(player)
-      cell = player.auto_play
+      @last_player = player
+      @last_played_cell = player.auto_play
 
-      if move_result(cell, player.colour) == ConnectFour::Settings::RESULT[:GAME_OVER]
-        announce_winner(player)
-        exit
+      if game_over?
+        @game_over = true
+        @winner = player
       else
         @logger.debug "player#{player.id} played - continue"
       end
     end
 
     def manual_play(player)
-
-      print_board
+      write_game_result
       column_to_play = nil
+      @last_player = player
+
       loop do
         puts "Player#{player.id} turn: enter the column number to play (between 1 - #{@columns})"
         column_to_play = STDIN.gets.chomp.to_i
         column_to_play > @columns ? next : break
       end
-      cell = player.manual_play(column_to_play - 1)
+      @last_played_cell = player.manual_play(column_to_play - 1)
 
-      if move_result(cell, player.colour) == ConnectFour::Settings::RESULT[:GAME_OVER]
-        announce_winner(player)
-        exit
+      if game_over?
+        @game_over = true
+        @winner = player
       else
         @logger.debug "player#{player.id} played - continue"
       end
     end
 
     # @param [Player] player
-    def announce_winner(player)
-      print_board
-      @logger.info "GAME OVER! -- Winner is Player##{player.id} - Colour: #{player.colour}"
+    def announce_winner
+      write_game_result
+      @logger.info "\nGAME OVER!\nWinner: Player##{winner.id} - Colour: #{winner.colour}"
     end
 
-    def print_board
+    def write_game_result
+      result_file = File.new(@game_result_file, 'w')
       @game_board.each do |row|
-        p row.map(&:colour)
+        #puts(row.map(&:colour).join(' | '))
+        result_file.puts(row.map(&:colour).join(' | '))
       end
+      result_file.close
     end
+
+    def game_over?
+      move_counter >= ConnectFour::Settings::MAX_MOVES || \
+      move_result(last_played_cell, last_player.colour) == ConnectFour::Settings::RESULT[:GAME_OVER]
+    end
+
   end
 end
 
