@@ -3,6 +3,8 @@ require_relative 'board'
 require_relative 'game_error'
 require_relative 'scanner'
 require_relative 'player'
+require_relative 'uuid'
+require_relative 'file_io'
 require 'logger'
 # frozen_string_literal: true
 
@@ -12,38 +14,46 @@ module ConnectFour
   class Game
 
     attr_reader :rows, :columns, :last_played_cell
-    attr_accessor :last_player, :move_counter, :game_over, :winner
+    attr_accessor :last_player, :move_counter, :game_over, :winner, :players, :id
 
     # @param rows [Integer] number of board rows
     # @param columns [Integer] number of board columns
-    def initialize(rows: 6, columns: 7, logger: nil)
+    def initialize(rows: 6, columns: 7, logger: nil, number_of_players: 2, players: nil, id: nil)
+      raise 'Connect Four is a 2 player game' unless number_of_players == 2
+
       @rows = rows
       @columns = columns
       @logger = logger || Logger.new(STDOUT)
       @game_board = Board.new(rows: rows, columns: columns, logger: @logger)
-      @game_result_file = 'game_result'
+      @players = players || create_players
+      @id = id || UUID.generate
       @game_over = false
       @move_counter = 0
     end
 
+    def create_players
+      @players ||= []
+      @players << Player.new(board: @game_board, colour: ConnectFour::Settings::RED, id: '1', logger: @logger)
+      @players << Player.new(board: @game_board, colour: ConnectFour::Settings::WHITE, id: '2', logger: @logger)
+      @players
+    end
+
     # start the game
     def play(auto: true)
-      player1 = Player.new(board: @game_board, colour: ConnectFour::Settings::RED, id: '1', logger: @logger)
-      player2 = Player.new(board: @game_board, colour: ConnectFour::Settings::WHITE, id: '2', logger: @logger)
-
       if auto
-        start_auto_mode(player1, player2)
+        start_auto_mode
       else
-        start_manual_mode(player1, player2)
+        start_manual_mode
       end
       @logger.info 'Game had no winner!' unless game_over
     end
 
-    def read_game_result
-      File.open(@game_result_file) do |file|
-        file.seek(0)
-        file.read
+    def update_status
+      string_io = StringIO.new
+      @game_board.each do |row|
+        string_io.puts(row.map(&:colour).join(' | '))
       end
+      FileIO.write(id, string_io)
     end
 
     private
@@ -64,20 +74,20 @@ module ConnectFour
       @scanner ||= Scanner.new(board: @game_board, logger: @logger)
     end
 
-    def start_auto_mode(player1, player2)
+    def start_auto_mode
       until game_over
         @move_counter += 1
-        auto_play(player1) unless game_over
-        auto_play(player2) unless game_over
+        auto_play(players[0]) unless game_over
+        auto_play(players[1]) unless game_over
       end
       announce_winner
     end
 
-    def start_manual_mode(player1, player2)
+    def start_manual_mode
       until game_over
         @move_counter += 1
-        manual_play(player1) unless game_over
-        manual_play(player2) unless game_over
+        manual_play(players[0]) unless game_over
+        manual_play(players[1]) unless game_over
       end
       announce_winner
     end
@@ -95,7 +105,7 @@ module ConnectFour
     end
 
     def manual_play(player)
-      write_game_result
+      update_status
       column_to_play = nil
       @last_player = player
 
@@ -116,22 +126,17 @@ module ConnectFour
 
     # @param [Player] player
     def announce_winner
-      write_game_result
+      update_status
       @logger.info "\nGAME OVER!\nWinner: Player##{winner.id} - Colour: #{winner.colour}"
-    end
-
-    def write_game_result
-      result_file = File.new(@game_result_file, 'w')
-      @game_board.each do |row|
-        #puts(row.map(&:colour).join(' | '))
-        result_file.puts(row.map(&:colour).join(' | '))
-      end
-      result_file.close
     end
 
     def game_over?
       move_counter >= ConnectFour::Settings::MAX_MOVES || \
       move_result(last_played_cell, last_player.colour) == ConnectFour::Settings::RESULT[:GAME_OVER]
+    end
+
+    def get_status
+      FileIO.read(id)
     end
 
   end
