@@ -11,9 +11,14 @@ module ConnectFour
 
     # @param rows [Integer] number of board rows
     # @param columns [Integer] number of board columns
-    def initialize(rows:, columns:, logger: nil)
+    def initialize(rows:, columns:, logger: nil, board_array: nil)
       @rows = rows
       @columns = columns
+      @board =  if board_array
+                  init_cells_from_array(board_array)
+                else
+                  init
+                end
       @logger = logger || Logger.new(STDOUT)
     end
 
@@ -51,17 +56,21 @@ module ConnectFour
       end
     end
 
-    def print_coloured(row)
-      row.each do |cell|
-        if cell.colour == ConnectFour::Settings::RED
-          p 'R'.red
-        elsif cell.colour == ConnectFour::Settings::WHITE
-          p 'R'.white
-        else
-          p cell.colour
-        end
-      end
+    def self.from_hash(board_hash)
+      Board.new(rows: board_hash['rows'], columns: board_hash['columns'], \
+                board_array: board_hash['cells'])
+    end
 
+    def as_json
+      {
+          rows: rows,
+          columns: columns,
+          cells: board.map { |row| row.map(&:as_json) }
+      }
+    end
+
+    def to_json
+      JSON.pretty_generate(as_json)
     end
 
     private
@@ -87,8 +96,35 @@ module ConnectFour
 
     # initialize game board
     def init
-      Array.new(@rows) { |row| Array.new(@columns) { |col| Cell.new(row_number: row, column_number: col) } }
+      Array.new(@rows) do |row|
+        Array.new(@columns) do |col|
+          Cell.new(row_number: row, column_number: col)
+        end
+      end
     end
+
+    def init_cells_from_array(baord_array)
+      baord_array.each do |row|
+        row.map! do |cell_hash|
+          Cell.from_hash(cell_hash)
+        end
+      end
+      baord_array
+    end
+
+    # not used
+    # def print_coloured(row)
+    #   row.each do |cell|
+    #     if cell.colour == ConnectFour::Settings::RED
+    #       p 'R'.red
+    #     elsif cell.colour == ConnectFour::Settings::WHITE
+    #       p 'R'.white
+    #     else
+    #       p cell.colour
+    #     end
+    #   end
+    #
+    # end
 
   end
 end

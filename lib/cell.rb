@@ -1,3 +1,4 @@
+require 'json'
 module ConnectFour
   # class that implements a cell in the board
   class Cell
@@ -21,6 +22,18 @@ module ConnectFour
     # checks whether the cell is already marked
     def marked?
       @colour != ConnectFour::Settings::EMPTY_VALUE
+    end
+
+    def as_json
+      {
+        colour: colour,
+        row: row_number,
+        column: column_number
+      }
+    end
+
+    def self.from_hash(cell_hash)
+      Cell.new(row_number: cell_hash['row'], column_number: cell_hash['column'], colour: cell_hash['colour'])
     end
 
     # def print_colour

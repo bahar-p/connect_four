@@ -9,20 +9,32 @@ module ConnectFour
 
     attr_reader :colour
     attr_reader :id
+    attr_reader :board
 
     # @param board [Board] game board
     # @param colour [Integer] player's color on the game. Either R|W
-    # @param id [String] players identifier
     # @param logger [Logger] game logger
-    def initialize(board:, colour:, id: '1', logger: nil)
+    def initialize(board:, colour:, logger: nil)
       raise 'player must have the game board' if board.nil?
 
       @board = board
       @colour = colour
-      @id = id
       @logger = logger || Logger.new(STDOUT)
     end
 
+    def as_json
+      {
+        colour: colour
+      }
+    end
+
+    def to_json
+      as_json.to_json
+    end
+
+    def self.from_hash(player_hash, board)
+      Player.new(colour: player_hash['colour'], board: board)
+    end
 
     # auto play action
     def auto_play
@@ -41,10 +53,6 @@ module ConnectFour
     # @param column [Integer] column to play
     def manual_play(column)
       @board.colour(column, @colour)
-    # rescue GameError
-    #   @logger.warn 'cell is already coloured'
-    # ensure
-    #   played_cell
     end
 
     private

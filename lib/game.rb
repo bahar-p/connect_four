@@ -13,29 +13,81 @@ module ConnectFour
   # class that implements connected four game stat
   class Game
 
-    attr_reader :rows, :columns, :last_played_cell
-    attr_accessor :last_player, :move_counter, :game_over, :winner, :players, :id
+    attr_reader :rows, :columns, :last_played_cell, :board, :turn
+    attr_accessor :last_player, :move_counter, :game_over, :winner, :players, :id, :winner_message
 
-    # @param rows [Integer] number of board rows
-    # @param columns [Integer] number of board columns
-    def initialize(rows: 6, columns: 7, logger: nil, number_of_players: 2, players: nil, id: nil)
-      raise 'Connect Four is a 2 player game' unless number_of_players == 2
-
+    def initialize(id: nil, rows: 6, columns: 7, logger: nil, players_array: nil, board: nil, \
+                   game_over: nil, move_counter: nil, turn: nil)
       @rows = rows
       @columns = columns
       @logger = logger || Logger.new(STDOUT)
-      @game_board = Board.new(rows: rows, columns: columns, logger: @logger)
-      @players = players || create_players
+      @board = board || Board.new(rows: rows, columns: columns, logger: @logger)
+      @players = if players_array
+                   add_players_from_array(players_array)
+                 else
+                   add_players
+                 end
       @id = id || UUID.generate
-      @game_over = false
-      @move_counter = 0
+      @game_over = game_over || false
+      @move_counter = move_counter || 0
+      @turn = turn || players_array.first['colour']
     end
 
-    def create_players
-      @players ||= []
-      @players << Player.new(board: @game_board, colour: ConnectFour::Settings::RED, id: '1', logger: @logger)
-      @players << Player.new(board: @game_board, colour: ConnectFour::Settings::WHITE, id: '2', logger: @logger)
-      @players
+    def self.from_hash(game_hash)
+      Game.new(id: game_hash['id'], rows: game_hash['rows'], columns: game_hash['columns'], \
+               board: ConnectFour::Board.from_hash(game_hash['board']), \
+               players_array: game_hash['players'], turn: game_hash['turn'], game_over: game_hash['game_over'], \
+               move_counter: game_hash['move_counter'])
+    end
+
+    def as_json
+      {
+        id: id,
+        rows: rows,
+        columns: columns,
+        board: board.as_json,
+        players: players.map(&:as_json),
+        game_over: game_over,
+        move_counter: move_counter,
+        turn: turn
+      }
+    end
+
+    def to_json
+      JSON.pretty_generate(as_json)
+    end
+
+    def add_players
+      players = []
+      players << Player.new(board: @board, colour: ConnectFour::Settings::RED, logger: @logger)
+      players << Player.new(board: @board, colour: ConnectFour::Settings::WHITE, logger: @logger)
+      players
+    end
+
+    def add_players_from_array(players)
+      players.map! do |player_hash|
+        ConnectFour::Player.from_hash(player_hash, @board)
+      end
+      players
+    end
+
+    def play_web(player, column_to_play)
+      column_to_play = column_to_play.to_i
+      raise "please enter valid column in range: 0-#{columns}" if column_to_play.to_i > @columns
+      raise 'Invalid player turn' if turn == player.colour
+      raise 'This game is over' if game_over
+      @move_counter += 1
+      @last_player = player
+      @turn = player.colour
+      @last_played_cell = player.manual_play(column_to_play - 1)
+
+      if game_over?
+        @game_over = true
+        @winner = player
+        self.winner_message = announce_winner
+      end
+      @board = player.board
+      update_status
     end
 
     # start the game
@@ -48,12 +100,20 @@ module ConnectFour
       @logger.info 'Game had no winner!' unless game_over
     end
 
+    # TODO: store board status
     def update_status
+      game_hash = to_json
+      FileIO.write(id, game_hash)
+      display_status
+    end
+
+    def display_status
       string_io = StringIO.new
-      @game_board.each do |row|
+      @board.each do |row|
         string_io.puts(row.map(&:colour).join(' | '))
       end
-      FileIO.write(id, string_io)
+      string_io.puts(winner_message) unless winner_message.nil?
+      string_io.string
     end
 
     private
@@ -71,7 +131,7 @@ module ConnectFour
     end
 
     def scanner
-      @scanner ||= Scanner.new(board: @game_board, logger: @logger)
+      @scanner ||= Scanner.new(board: @board, logger: @logger)
     end
 
     def start_auto_mode
@@ -100,7 +160,7 @@ module ConnectFour
         @game_over = true
         @winner = player
       else
-        @logger.debug "player#{player.id} played - continue"
+        @logger.debug "player#{player.colour} played - continue"
       end
     end
 
@@ -110,7 +170,7 @@ module ConnectFour
       @last_player = player
 
       loop do
-        puts "Player#{player.id} turn: enter the column number to play (between 1 - #{@columns})"
+        puts "Player#{player.colour} turn: enter the column number to play (between 1 - #{@columns})"
         column_to_play = STDIN.gets.chomp.to_i
         column_to_play > @columns ? next : break
       end
@@ -120,14 +180,13 @@ module ConnectFour
         @game_over = true
         @winner = player
       else
-        @logger.debug "player#{player.id} played - continue"
+        @logger.debug "player#{player.colour} played - continue"
       end
     end
 
     # @param [Player] player
     def announce_winner
-      update_status
-      @logger.info "\nGAME OVER!\nWinner: Player##{winner.id} - Colour: #{winner.colour}"
+      "\nGAME OVER!\nWinner: Player##{winner.id} - Colour: #{winner.colour}"
     end
 
     def game_over?
